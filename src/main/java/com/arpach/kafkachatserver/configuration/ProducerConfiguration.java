@@ -1,7 +1,7 @@
 package com.arpach.kafkachatserver.configuration;
 
 //import com.arpach.kafkachatserver.constants.KafkaConstants;
-import com.arpach.kafkachatserver.model.Messages;
+import com.arpach.kafkachatserver.model.Message;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,7 +22,7 @@ import java.util.Map;
 
 public class ProducerConfiguration{
 	@Bean 
-	public  ProducerFactory<String,Messages> producerFactory(){
+	public  ProducerFactory<String,Message> producerFactory(){
 		return new DefaultKafkaProducerFactory<>(producerConfigurations());
 	
 	}
@@ -36,7 +36,7 @@ public class ProducerConfiguration{
 	}
 		
 	@Bean
-	public KafkaTemplate<String,Messages>kafkaTemplate(){
+	public KafkaTemplate<String,Message>kafkaTemplate(){
 		return new KafkaTemplate<>(producerFactory());
 	}
 		
