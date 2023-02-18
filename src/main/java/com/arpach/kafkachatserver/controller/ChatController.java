@@ -1,48 +1,70 @@
 package com.arpach.kafkachatserver.controller;
 
-import java.time.LocalDateTime;
-import java.util.concurrent.ExecutionException;
 
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
-
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import com.arpach.kafkachatserver.constants.KafkaConstants;
-import com.arpach.kafkachatserver.model.Message;
+import com.arpach.kafkachatserver.model.ChatMessage;
+import com.arpach.kafkachatserver.services.KafkaProducer;
+import com.arpach.kafkachatserver.storage.MessageStorage;
 
 @RestController
+@RequestMapping(value = "/kafka/chat")
 public class ChatController {
+	
+	private static final Logger logger = LoggerFactory.getLogger(KafkaProducer.class);
 
-    @Autowired
-    private KafkaTemplate<String, Message> kafkaTemplate;
+	@Autowired
+	KafkaProducer producer;
 
-    @PostMapping(value = "/api/send", consumes = "application/json", produces = "application/json")
-    public void sendMessage(@RequestBody Message message) {
-        message.setTimestamp(LocalDateTime.now().toString());
-        try {
-            //Sending the message to kafka topic queue
-            kafkaTemplate.send(KafkaConstants.KAFKA_TOPIC, message).get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException(e);
-        }
-    }
+	@Autowired
+	MessageStorage storage;
+	
+	/**
+	 * Receiving message from Web Browser using STOMP CLIENT and further Sending
+	 * message to a KAFKA TOPIC
+	 * @param data
+	 * @return
+	 */
+	@GetMapping(value = "/sendMessage")
+	@MessageMapping("/sendMessage")
+	public void sendMessage(ChatMessage message) throws Exception {
+		logger.debug("ChatController.sendMessage : Received message from Web Browser using STOMP Client and further sending it to a KAFKA Topic");
+		producer.send(ChatMessage.MessageType.valueOf(message.getType().name()) + "-" + message.getContent() + "-"
+				+ message.getSender());
+	}
 
-    @MessageMapping("/sendMessage")
-    @SendTo("/topic/group")
-    public Message broadcastGroupMessage(@Payload Message message) {
-        //Sending this message to all the subscribers
-        return message;
-    }
+	/**
+	 * Adding username in Websocket
+	 * @param chatMessage
+	 * @param headerAccessor
+	 * @return
+	 */
+	@MessageMapping("/chat.addUser")
+	@SendTo("/topic/public")
+	public ChatMessage addUser(@Payload ChatMessage chatMessage, SimpMessageHeaderAccessor headerAccessor) {
+		// Add username in web socket session
+		headerAccessor.getSessionAttributes().put("username", chatMessage.getSender());
+		return chatMessage;
+	}
+	
+	/**
+	 * It consumes messages from a specified Topic
+	 * @return
+	 */
+	@GetMapping(value = "/consumer")
+	public String getAllRecievedMessage() {
+		String messages = storage.toString();
+		storage.clear();
+		return messages;
+	}
 }
-
-
-
-  
