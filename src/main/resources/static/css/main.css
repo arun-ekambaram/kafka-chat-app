@@ -27,7 +27,7 @@ body:before {
     position: absolute;
     top: 0;
     left: 0;
-    background: red;
+    /* background: red; */
     content: "";
     z-index: 0;
 }
@@ -132,6 +132,12 @@ button.accent {
     margin-top: 10px;
 }
 
+.project{
+    width: fit-content;
+    text-align: center;
+    margin-left: 500px;
+
+}
 
 #chat-page {
     position: relative;
